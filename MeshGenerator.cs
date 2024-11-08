@@ -2,7 +2,7 @@ using UnityEngine;
 
 public class MeshGenerator : MonoBehaviour
 {
-    Mesh mesh;
+    Mesh mesh;    
 
     Vector3[] vertices;
     int[] triangles;
