@@ -1,94 +1,63 @@
 using UnityEngine;
 
-public class MeshGenerator : MonoBehaviour
-{
-    Mesh mesh;    
+public static class MeshGenerator {
 
-    Vector3[] vertices;
-    int[] triangles;
+    public static MeshData GenerateTerrainMesh(float[,] heightMap) {
+        int width = heightMap.GetLength (0);
+        int height = heightMap.GetLength (1);
+        float topLeftX = (width - 1) / -2f;
+        float topLeftZ = (height - 1) / 2f;
 
-    public int xSize = 20;
-    public int zSize = 20;
+        MeshData meshData = new MeshData (width, height);
+        int vertexIndex = 0;
 
-    
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
 
-    private void Start()
-    {
-        mesh = new Mesh();
-        GetComponent<MeshFilter>().mesh = mesh;
+                meshData.vertices [vertexIndex] = new Vector3 (topLeftX + x, heightMap [x, y], topLeftZ - y);
+                meshData.uvs [vertexIndex] = new Vector2 (x / (float)width, y / (float)height);
 
-        CreateShape();
-        UpdateMesh();
-    }
+                if (x < width - 1 && y < height - 1) {
+                    meshData.AddTriangle (vertexIndex, vertexIndex + width + 1, vertexIndex + width);
+                    meshData.AddTriangle (vertexIndex + width + 1, vertexIndex, vertexIndex + 1);
+                }
 
-    private void CreateShape()
-    {
-        vertices = new Vector3[(xSize + 1) * (zSize + 1)];
-        //membuat array bertipe Vector3 dengan besar (xSize + 1) * (zSize + 1)
-        //+1 karena untuk membuat satu garis dengan panjang X dibutuhkan X + 1 sebagai penutup
-        //* * -> satu vertices membutuhkan dua edge
-        //* * * -> dua vertices membutuhkan tiga edge
-
-        for (int i = 0, z = 0; z <= zSize; z++)
-        {
-            for (int x = 0; x <= xSize; x++)
-            {
-                float y = Mathf.PerlinNoise(x * .3f, z * .4f) * 1.4f;
-                vertices[i] = new Vector3(x, y, z);
-                i++;
+                vertexIndex++;
             }
         }
 
-        //looping z hingga nilainya sama dengan z 
-        //looping x hingga nilainya sama dengan x
-        //variabel i untuk menyimpan indeks
+        return meshData;
 
-        triangles = new int[xSize * zSize * 6];
-        //dikali 6 karena tiap face membutuhkan 6 edge
+    }
+}
 
-        int vert = 0;
-        int tris = 0;
-        //variabel untuk tracing sudah pada vertices dan triangle ke berapa
+public class MeshData {
+    public Vector3[] vertices;
+    public int[] triangles;
+    public Vector2[] uvs;
 
-        for (int z = 0; z < zSize; z++)
-        {
-            for (int x = 0; x < xSize; x++)
-            {
-                triangles[tris + 0] = vert + 0;
-                triangles[tris + 1] = vert + xSize + 1;
-                triangles[tris + 2] = vert + 1;
-                triangles[tris + 3] = vert + 1;
-                triangles[tris + 4] = vert + xSize + 1;
-                triangles[tris + 5] = vert + xSize + 2;
+    int triangleIndex;
 
-                vert++;
-                tris += 6;
-            }
-            vert++;
-        }
-        //variabel triangle untuk membuat triangle pada mesh 
-        //edge dibuat dari kiri -> atas -> bawah-kanan
-        // 2    5  6
-        // 1  3    4
+    public MeshData(int meshWidth, int meshHeight) {
+        vertices = new Vector3[meshWidth * meshHeight];
+        uvs = new Vector2[meshWidth * meshHeight];
+        triangles = new int[(meshWidth-1)*(meshHeight-1)*6];
     }
 
-    private void UpdateMesh()
-    {
-        mesh.Clear();
+    public void AddTriangle(int a, int b, int c) {
+        triangles [triangleIndex] = a;
+        triangles [triangleIndex + 1] = b;
+        triangles [triangleIndex + 2] = c;
+        triangleIndex += 3;
+    }
 
+    public Mesh CreateMesh() {
+        Mesh mesh = new Mesh ();
         mesh.vertices = vertices;
         mesh.triangles = triangles;
-
-        mesh.RecalculateNormals();
+        mesh.uv = uvs;
+        mesh.RecalculateNormals ();
+        return mesh;
     }
 
-    private void OnDrawGizmos()
-    {
-        if (vertices == null) return;
-
-        for (int i = 0; i < vertices.Length; i++)
-        {
-            Gizmos.DrawSphere(vertices[i], .1f);
-        }
-    }
 }
